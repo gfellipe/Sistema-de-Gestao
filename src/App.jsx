@@ -5,12 +5,14 @@ import {
   Wrench, 
   Package, 
   Settings, 
-  PlusCircle,
-  Trash2,
-  Save,
-  AlertTriangle,
-  Search,
-  RefreshCcw
+  PlusCircle, 
+  Trash2, 
+  Save, 
+  AlertTriangle, 
+  Search, 
+  RefreshCcw, 
+  Menu, 
+  X 
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -87,10 +89,10 @@ const INITIAL_DATA = {
 };
 
 const App = () => {
-  // --- ESTADOS E PERSISTÊNCIA ---
+  // --- ESTADOS ---
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // MUDANÇA AQUI: Adicionei "_final" nas chaves para forçar o navegador a carregar os dados novos
   const usePersistedState = (key, initialValue) => {
     const [state, setState] = useState(() => {
       const saved = localStorage.getItem(key);
@@ -102,7 +104,6 @@ const App = () => {
     return [state, setState];
   };
 
-  // Chaves atualizadas para "config_final", etc.
   const [config, setConfig] = usePersistedState('config_final', INITIAL_DATA.config);
   const [fixos, setFixos] = usePersistedState('fixos_final', INITIAL_DATA.fixos);
   const [estoque, setEstoque] = usePersistedState('estoque_final', INITIAL_DATA.estoque);
@@ -111,16 +112,13 @@ const App = () => {
 
   // --- CÁLCULOS AUXILIARES ---
   const totalFixos = fixos.reduce((acc, item) => acc + Number(item.valor), 0);
-  const custoFixoHora = totalFixos / 160; // Base 160h mensais
+  const custoFixoHora = totalFixos / 160;
 
   // --- COMPONENTES DE TELA ---
-  
   const Dashboard = () => {
-    // Pegar o mês atual para filtrar (opcional, aqui mostra tudo para dar volume aos dados)
     const entradas = caixa.filter(c => c.tipo === 'Entrada').reduce((acc, c) => acc + Number(c.valor), 0);
     const saidas = caixa.filter(c => c.tipo === 'Saída').reduce((acc, c) => acc + Number(c.valor), 0);
     const saldo = entradas - saidas;
-    const lucroLiquido = saldo - totalFixos;
 
     const dadosGrafico = [
       { name: 'Entradas', valor: entradas },
@@ -129,42 +127,29 @@ const App = () => {
     ];
 
     return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Visão Geral</h2>
-        
-        {/* CARDS KPI */}
+      <div className="space-y-6 pb-20">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">Visão Geral</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <p className="text-gray-500 text-sm">Faturamento Total</p>
+            <p className="text-gray-500 text-sm">Faturamento</p>
             <p className="text-2xl font-bold text-green-600">R$ {entradas.toFixed(2)}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <p className="text-gray-500 text-sm">Custos Fixos (Mês)</p>
+            <p className="text-gray-500 text-sm">Custos Fixos</p>
             <p className="text-2xl font-bold text-red-500">R$ {totalFixos.toFixed(2)}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <p className="text-gray-500 text-sm">Saldo de Caixa</p>
-            <p className="text-2xl font-bold text-blue-600">
-              R$ {saldo.toFixed(2)}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <p className="text-gray-500 text-sm">Meta Pró-Labore</p>
-            <div className="flex justify-between items-end">
-              <p className="text-xl font-bold text-gray-700">R$ {config.proLabore}</p>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Meta: R$ 2.000,00</p>
+            <p className="text-gray-500 text-sm">Saldo</p>
+            <p className="text-2xl font-bold text-blue-600">R$ {saldo.toFixed(2)}</p>
           </div>
         </div>
-
-        {/* GRÁFICOS */}
-        <div className="bg-white p-6 rounded-lg shadow-sm h-80">
+        <div className="bg-white p-4 rounded-lg shadow-sm h-80">
           <h3 className="text-lg font-semibold mb-4">Fluxo Financeiro</h3>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={dadosGrafico}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
+              <XAxis dataKey="name" fontSize={12} />
+              <YAxis fontSize={12} />
               <Tooltip formatter={(value) => `R$ ${value.toFixed(2)}`} />
               <Bar dataKey="valor" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -184,15 +169,11 @@ const App = () => {
       setNovoLancamento({ data: '', desc: '', tipo: 'Entrada', valor: '', forma: 'PIX' });
     };
 
-    const caixaFiltrado = caixa.filter(item => 
-      item.desc.toLowerCase().includes(filtro.toLowerCase())
-    );
+    const caixaFiltrado = caixa.filter(item => item.desc.toLowerCase().includes(filtro.toLowerCase()));
 
     return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Fluxo de Caixa</h2>
-        
-        {/* FORMULÁRIO */}
+      <div className="space-y-6 pb-20">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">Fluxo de Caixa</h2>
         <div className="bg-white p-4 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-6 gap-4 items-end border border-gray-100">
           <div className="md:col-span-1">
             <label className="block text-xs font-bold text-gray-600 mb-1">Data</label>
@@ -200,69 +181,61 @@ const App = () => {
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-gray-600 mb-1">Descrição</label>
-            <input list="servicos-sugestao" type="text" className="w-full border rounded p-2 text-sm" placeholder="Ex: Lavagem Gol" value={novoLancamento.desc} onChange={e => setNovoLancamento({...novoLancamento, desc: e.target.value})} />
+            <input list="servicos-sugestao" type="text" className="w-full border rounded p-2 text-sm" placeholder="Ex: Lavagem" value={novoLancamento.desc} onChange={e => setNovoLancamento({...novoLancamento, desc: e.target.value})} />
             <datalist id="servicos-sugestao">
               {servicos.map(s => <option key={s.id} value={s.nome} />)}
             </datalist>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">Tipo</label>
-            <select className="w-full border rounded p-2 text-sm" value={novoLancamento.tipo} onChange={e => setNovoLancamento({...novoLancamento, tipo: e.target.value})}>
-              <option>Entrada</option>
-              <option>Saída</option>
-            </select>
+          <div className="grid grid-cols-2 gap-2 md:col-span-2">
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">Tipo</label>
+              <select className="w-full border rounded p-2 text-sm" value={novoLancamento.tipo} onChange={e => setNovoLancamento({...novoLancamento, tipo: e.target.value})}>
+                <option>Entrada</option>
+                <option>Saída</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">Valor</label>
+              <input type="number" className="w-full border rounded p-2 text-sm" value={novoLancamento.valor} onChange={e => setNovoLancamento({...novoLancamento, valor: e.target.value})} />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">Valor (R$)</label>
-            <input type="number" className="w-full border rounded p-2 text-sm" value={novoLancamento.valor} onChange={e => setNovoLancamento({...novoLancamento, valor: e.target.value})} />
-          </div>
-          <button onClick={handleAdd} className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 flex justify-center items-center gap-2 text-sm font-bold">
+          <button onClick={handleAdd} className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 flex justify-center items-center gap-2 text-sm font-bold h-10">
             <PlusCircle size={18} /> Lançar
           </button>
         </div>
 
-        {/* TABELA */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
-          <div className="p-4 border-b flex justify-between items-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col">
+          <div className="p-4 border-b flex justify-between items-center bg-gray-50">
             <h3 className="font-bold text-gray-700">Histórico</h3>
-            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded">
+            <div className="flex items-center gap-2 bg-white border px-3 py-1 rounded">
               <Search size={16} className="text-gray-400"/>
-              <input 
-                className="bg-transparent text-sm outline-none" 
-                placeholder="Buscar..." 
-                value={filtro}
-                onChange={e => setFiltro(e.target.value)}
-              />
+              <input className="bg-transparent text-sm outline-none w-24 md:w-auto" placeholder="Buscar..." value={filtro} onChange={e => setFiltro(e.target.value)} />
             </div>
           </div>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600">
-              <tr>
-                <th className="p-4">Data</th>
-                <th className="p-4">Descrição</th>
-                <th className="p-4">Tipo</th>
-                <th className="p-4">Valor</th>
-                <th className="p-4">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {caixaFiltrado.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="p-4">{item.data}</td>
-                  <td className="p-4">{item.desc}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.tipo === 'Entrada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {item.tipo}
-                    </span>
-                  </td>
-                  <td className="p-4 font-medium">R$ {Number(item.valor).toFixed(2)}</td>
-                  <td className="p-4 text-red-400 cursor-pointer hover:text-red-600">
-                    <Trash2 size={16} onClick={() => setCaixa(caixa.filter(c => c.id !== item.id))} />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm min-w-[600px]">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="p-4">Data</th>
+                  <th className="p-4">Descrição</th>
+                  <th className="p-4">Tipo</th>
+                  <th className="p-4">Valor</th>
+                  <th className="p-4">Ação</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {caixaFiltrado.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="p-4">{item.data}</td>
+                    <td className="p-4 font-medium">{item.desc}</td>
+                    <td className="p-4"><span className={`px-2 py-1 rounded-full text-xs font-bold ${item.tipo === 'Entrada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.tipo}</span></td>
+                    <td className="p-4 font-medium">R$ {Number(item.valor).toFixed(2)}</td>
+                    <td className="p-4 text-red-400 cursor-pointer hover:text-red-600"><Trash2 size={16} onClick={() => setCaixa(caixa.filter(c => c.id !== item.id))} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     );
@@ -270,8 +243,6 @@ const App = () => {
 
   const CalculadoraServicos = () => {
     const [novo, setNovo] = useState({ nome: '', tempo: 1, mat: 0 });
-    
-    // Cálculos em tempo real
     const custoMO = novo.tempo * config.valorHora;
     const rateio = novo.tempo * custoFixoHora;
     const custoTotal = custoMO + Number(novo.mat) + rateio;
@@ -283,70 +254,40 @@ const App = () => {
     };
 
     return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Serviços e Preços</h2>
-        
+      <div className="space-y-6 pb-20">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">Serviços e Preços</h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* CALCULADORA */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-blue-100 lg:col-span-1 h-fit">
-            <h3 className="font-bold mb-4 text-blue-800 flex items-center gap-2">
-              <PlusCircle size={18}/> Novo Serviço
-            </h3>
+            <h3 className="font-bold mb-4 text-blue-800 flex items-center gap-2"><PlusCircle size={18}/> Novo Serviço</h3>
             <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-gray-600">Nome do Serviço</label>
-                <input className="w-full border rounded p-2 text-sm" value={novo.nome} onChange={e => setNovo({...novo, nome: e.target.value})} />
-              </div>
+              <div><label className="text-xs font-bold text-gray-600">Nome</label><input className="w-full border rounded p-2 text-sm" value={novo.nome} onChange={e => setNovo({...novo, nome: e.target.value})} /></div>
               <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-bold text-gray-600">Tempo (Horas)</label>
-                  <input type="number" className="w-full border rounded p-2 text-sm" value={novo.tempo} onChange={e => setNovo({...novo, tempo: Number(e.target.value)})} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-600">Custo Material</label>
-                  <input type="number" className="w-full border rounded p-2 text-sm" value={novo.mat} onChange={e => setNovo({...novo, mat: Number(e.target.value)})} />
-                </div>
+                <div><label className="text-xs font-bold text-gray-600">Tempo (h)</label><input type="number" className="w-full border rounded p-2 text-sm" value={novo.tempo} onChange={e => setNovo({...novo, tempo: Number(e.target.value)})} /></div>
+                <div><label className="text-xs font-bold text-gray-600">Material (R$)</label><input type="number" className="w-full border rounded p-2 text-sm" value={novo.mat} onChange={e => setNovo({...novo, mat: Number(e.target.value)})} /></div>
               </div>
-              
               <div className="bg-gray-50 p-3 rounded text-xs space-y-1 text-gray-600">
-                <div className="flex justify-between"><span>Mão de Obra ({config.valorHora}/h):</span> <span>R$ {custoMO.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Mão de Obra:</span> <span>R$ {custoMO.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Rateio Fixo:</span> <span>R$ {rateio.toFixed(2)}</span></div>
                 <div className="flex justify-between font-bold pt-2 border-t text-gray-800"><span>Custo Total:</span> <span>R$ {custoTotal.toFixed(2)}</span></div>
               </div>
-              
               <div className="bg-blue-50 p-3 rounded text-center border border-blue-100">
-                <p className="text-xs text-blue-600 font-bold uppercase">Preço Sugerido (+{config.metaLucro}%)</p>
+                <p className="text-xs text-blue-600 font-bold uppercase">Preço Sugerido</p>
                 <p className="text-2xl font-bold text-blue-800">R$ {precoSugerido.toFixed(2)}</p>
               </div>
-
               <button onClick={salvarServico} className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 text-sm font-bold">Salvar na Tabela</button>
             </div>
           </div>
-
-          {/* LISTA DE SERVIÇOS */}
           <div className="bg-white rounded-lg shadow-sm lg:col-span-2 overflow-hidden border border-gray-100">
-             <div className="p-4 bg-gray-50 border-b">
-                <h3 className="font-bold text-gray-700">Tabela de Serviços Atual</h3>
-             </div>
-             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+            <div className="p-4 bg-gray-50 border-b"><h3 className="font-bold text-gray-700">Tabela de Serviços Atual</h3></div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[500px]">
                 <thead className="bg-white text-gray-500 border-b">
-                  <tr>
-                    <th className="p-3">Serviço</th>
-                    <th className="p-3">Tempo</th>
-                    <th className="p-3">Material</th>
-                    <th className="p-3">Preço Venda</th>
-                    <th className="p-3"></th>
-                  </tr>
+                  <tr><th className="p-3">Serviço</th><th className="p-3">Tempo</th><th className="p-3">Material</th><th className="p-3">Preço Venda</th><th className="p-3"></th></tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {servicos.map(s => (
                     <tr key={s.id} className="hover:bg-gray-50">
-                      <td className="p-3 font-medium text-gray-800">{s.nome}</td>
-                      <td className="p-3 text-gray-500">{s.tempo}h</td>
-                      <td className="p-3 text-gray-500">R$ {Number(s.mat).toFixed(2)}</td>
-                      <td className="p-3 font-bold text-green-600">R$ {Number(s.preco).toFixed(2)}</td>
-                      <td className="p-3 text-red-400 cursor-pointer hover:text-red-600"><Trash2 size={16} onClick={() => setServicos(servicos.filter(i => i.id !== s.id))} /></td>
+                      <td className="p-3 font-medium text-gray-800">{s.nome}</td><td className="p-3 text-gray-500">{s.tempo}h</td><td className="p-3 text-gray-500">R$ {Number(s.mat).toFixed(2)}</td><td className="p-3 font-bold text-green-600">R$ {Number(s.preco).toFixed(2)}</td><td className="p-3 text-red-400 cursor-pointer hover:text-red-600"><Trash2 size={16} onClick={() => setServicos(servicos.filter(i => i.id !== s.id))} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -360,74 +301,34 @@ const App = () => {
 
   const Estoque = () => {
     const [item, setItem] = useState({ nome: '', qtd: 1, custo: 0, categoria: 'Geral' });
-    
-    // Cálculo do total investido
     const totalInvestido = estoque.reduce((acc, it) => acc + (it.qtd * it.custo), 0);
 
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">Estoque</h2>
-          <div className="bg-white px-4 py-2 rounded shadow-sm border border-gray-200">
+      <div className="space-y-6 pb-20">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Estoque</h2>
+          <div className="bg-white px-4 py-2 rounded shadow-sm border border-gray-200 w-full md:w-auto">
             <span className="text-xs text-gray-500 uppercase font-bold">Total Investido</span>
             <div className="text-xl font-bold text-gray-800">R$ {totalInvestido.toFixed(2)}</div>
           </div>
         </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow-sm flex gap-4 items-end flex-wrap border border-gray-100">
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-xs font-bold text-gray-600">Nome do Item</label>
-            <input className="w-full border rounded p-2 text-sm" value={item.nome} onChange={e => setItem({...item, nome: e.target.value})} />
+        <div className="bg-white p-4 rounded-lg shadow-sm flex flex-col md:flex-row gap-4 items-end flex-wrap border border-gray-100">
+          <div className="w-full md:flex-1"><label className="text-xs font-bold text-gray-600">Nome do Item</label><input className="w-full border rounded p-2 text-sm" value={item.nome} onChange={e => setItem({...item, nome: e.target.value})} /></div>
+          <div className="w-full md:w-32"><label className="text-xs font-bold text-gray-600">Categoria</label><select className="w-full border rounded p-2 text-sm" value={item.categoria} onChange={e => setItem({...item, categoria: e.target.value})}><option>Geral</option><option>Químico</option><option>Equipamento</option><option>Acessório</option><option>Consumível</option></select></div>
+          <div className="grid grid-cols-2 gap-2 w-full md:w-auto">
+            <div className="w-full md:w-20"><label className="text-xs font-bold text-gray-600">Qtd</label><input type="number" className="w-full border rounded p-2 text-sm" value={item.qtd} onChange={e => setItem({...item, qtd: Number(e.target.value)})} /></div>
+            <div className="w-full md:w-28"><label className="text-xs font-bold text-gray-600">Custo Unit.</label><input type="number" className="w-full border rounded p-2 text-sm" value={item.custo} onChange={e => setItem({...item, custo: Number(e.target.value)})} /></div>
           </div>
-          <div className="w-32">
-             <label className="text-xs font-bold text-gray-600">Categoria</label>
-             <select className="w-full border rounded p-2 text-sm" value={item.categoria} onChange={e => setItem({...item, categoria: e.target.value})}>
-                <option>Geral</option>
-                <option>Químico</option>
-                <option>Equipamento</option>
-                <option>Acessório</option>
-                <option>Consumível</option>
-             </select>
-          </div>
-          <div className="w-20">
-            <label className="text-xs font-bold text-gray-600">Qtd</label>
-            <input type="number" className="w-full border rounded p-2 text-sm" value={item.qtd} onChange={e => setItem({...item, qtd: Number(e.target.value)})} />
-          </div>
-          <div className="w-28">
-            <label className="text-xs font-bold text-gray-600">Custo Unit.</label>
-            <input type="number" className="w-full border rounded p-2 text-sm" value={item.custo} onChange={e => setItem({...item, custo: Number(e.target.value)})} />
-          </div>
-          <button 
-            onClick={() => {
-              if(!item.nome) return;
-              setEstoque([...estoque, { ...item, id: Date.now() }]);
-              setItem({ nome: '', qtd: 1, custo: 0, categoria: 'Geral' });
-            }}
-            className="bg-green-600 text-white p-2 rounded hover:bg-green-700 font-bold text-sm"
-          >
-            Adicionar
-          </button>
+          <button onClick={() => { if(!item.nome) return; setEstoque([...estoque, { ...item, id: Date.now() }]); setItem({ nome: '', qtd: 1, custo: 0, categoria: 'Geral' }); }} className="w-full md:w-auto bg-green-600 text-white p-2 rounded hover:bg-green-700 font-bold text-sm h-10 md:h-9">Adicionar</button>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {estoque.map(prod => (
             <div key={prod.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 relative group">
-              <div className="flex justify-between items-start mb-2">
-                 <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 border border-gray-100 px-1 rounded">{prod.categoria || 'Geral'}</span>
-                 <Trash2 size={14} className="text-gray-300 hover:text-red-500 cursor-pointer" onClick={() => setEstoque(estoque.filter(i => i.id !== prod.id))}/>
-              </div>
+              <div className="flex justify-between items-start mb-2"><span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 border border-gray-100 px-1 rounded">{prod.categoria || 'Geral'}</span><Trash2 size={16} className="text-gray-300 hover:text-red-500 cursor-pointer" onClick={() => setEstoque(estoque.filter(i => i.id !== prod.id))}/></div>
               <h3 className="font-bold text-gray-800 text-sm h-10 line-clamp-2">{prod.nome}</h3>
               <div className="mt-3 flex justify-between items-end border-t pt-2 border-gray-50">
-                <div>
-                   <p className="text-xs text-gray-400">Unitário</p>
-                   <p className="text-sm font-medium text-gray-600">R$ {Number(prod.custo).toFixed(2)}</p>
-                </div>
-                <div className="text-right">
-                   <p className="text-xs text-gray-400">Qtd</p>
-                   <span className={`text-lg font-bold ${prod.qtd < 2 ? 'text-red-500 flex items-center gap-1' : 'text-gray-800'}`}>
-                     {prod.qtd < 2 && <AlertTriangle size={12}/>} {prod.qtd}
-                   </span>
-                </div>
+                <div><p className="text-xs text-gray-400">Unitário</p><p className="text-sm font-medium text-gray-600">R$ {Number(prod.custo).toFixed(2)}</p></div>
+                <div className="text-right"><p className="text-xs text-gray-400">Qtd</p><span className={`text-lg font-bold ${prod.qtd < 2 ? 'text-red-500 flex items-center gap-1' : 'text-gray-800'}`}>{prod.qtd < 2 && <AlertTriangle size={12}/>} {prod.qtd}</span></div>
               </div>
             </div>
           ))}
@@ -440,82 +341,44 @@ const App = () => {
     const [localConfig, setLocalConfig] = useState(config);
     const [localFixo, setLocalFixo] = useState({ nome: '', valor: '' });
 
-    // Função de Resetar Dados
     const resetData = () => {
       if(confirm("Tem certeza? Isso apagará todos os dados atuais e recarregará a planilha original.")) {
          localStorage.clear();
          window.location.reload();
       }
     };
-
-    const handleSaveConfig = () => {
-      setConfig(localConfig);
-      alert('Configurações Salvas!');
-    };
-
-    const addFixo = () => {
-      if(!localFixo.nome || !localFixo.valor) return;
-      setFixos([...fixos, { ...localFixo, id: Date.now(), valor: Number(localFixo.valor) }]);
-      setLocalFixo({ nome: '', valor: '' });
-    };
+    const handleSaveConfig = () => { setConfig(localConfig); alert('Configurações Salvas!'); };
+    const addFixo = () => { if(!localFixo.nome || !localFixo.valor) return; setFixos([...fixos, { ...localFixo, id: Date.now(), valor: Number(localFixo.valor) }]); setLocalFixo({ nome: '', valor: '' }); };
 
     return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Configurações & Custos</h2>
-        
+      <div className="space-y-6 pb-20">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">Configurações & Custos</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* PARAMETROS GERAIS */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="font-bold mb-4 flex items-center gap-2 text-gray-700"><Settings size={18}/> Parâmetros do Negócio</h3>
+            <h3 className="font-bold mb-4 flex items-center gap-2 text-gray-700"><Settings size={18}/> Parâmetros</h3>
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-gray-600">Valor da sua Hora (R$)</label>
-                <input type="number" className="w-full border rounded p-2 text-sm" value={localConfig.valorHora} onChange={e => setLocalConfig({...localConfig, valorHora: Number(e.target.value)})} />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-600">Meta de Lucro (%)</label>
-                <input type="number" className="w-full border rounded p-2 text-sm" value={localConfig.metaLucro} onChange={e => setLocalConfig({...localConfig, metaLucro: Number(e.target.value)})} />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-600">Pró-Labore Desejado (R$)</label>
-                <input type="number" className="w-full border rounded p-2 text-sm" value={localConfig.proLabore} onChange={e => setLocalConfig({...localConfig, proLabore: Number(e.target.value)})} />
-              </div>
-              <button onClick={handleSaveConfig} className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 mt-4 text-sm font-bold flex items-center justify-center gap-2">
-                 <Save size={16}/> Salvar Alterações
-              </button>
-              
-              <div className="pt-4 border-t mt-4">
-                  <button onClick={resetData} className="w-full text-red-500 p-2 rounded hover:bg-red-50 text-xs font-bold flex items-center justify-center gap-2">
-                    <RefreshCcw size={14}/> Resetar Dados (Limpar Cache)
-                  </button>
-              </div>
+              <div><label className="text-xs font-bold text-gray-600">Valor Hora (R$)</label><input type="number" className="w-full border rounded p-2 text-sm" value={localConfig.valorHora} onChange={e => setLocalConfig({...localConfig, valorHora: Number(e.target.value)})} /></div>
+              <div><label className="text-xs font-bold text-gray-600">Meta Lucro (%)</label><input type="number" className="w-full border rounded p-2 text-sm" value={localConfig.metaLucro} onChange={e => setLocalConfig({...localConfig, metaLucro: Number(e.target.value)})} /></div>
+              <div><label className="text-xs font-bold text-gray-600">Pró-Labore (R$)</label><input type="number" className="w-full border rounded p-2 text-sm" value={localConfig.proLabore} onChange={e => setLocalConfig({...localConfig, proLabore: Number(e.target.value)})} /></div>
+              <button onClick={handleSaveConfig} className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 mt-4 text-sm font-bold flex items-center justify-center gap-2"><Save size={16}/> Salvar Alterações</button>
+              <div className="pt-4 border-t mt-4"><button onClick={resetData} className="w-full text-red-500 p-2 rounded hover:bg-red-50 text-xs font-bold flex items-center justify-center gap-2"><RefreshCcw size={14}/> Resetar Dados</button></div>
             </div>
           </div>
-
-          {/* CUSTOS FIXOS */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="font-bold mb-4 flex items-center gap-2 text-gray-700"><Wallet size={18}/> Custos Fixos Mensais</h3>
-            
+            <h3 className="font-bold mb-4 flex items-center gap-2 text-gray-700"><Wallet size={18}/> Custos Fixos</h3>
             <div className="flex gap-2 mb-4 bg-gray-50 p-2 rounded">
               <input placeholder="Ex: Aluguel" className="border rounded p-2 flex-1 text-sm bg-white" value={localFixo.nome} onChange={e => setLocalFixo({...localFixo, nome: e.target.value})} />
               <input placeholder="R$" type="number" className="border rounded p-2 w-20 text-sm bg-white" value={localFixo.valor} onChange={e => setLocalFixo({...localFixo, valor: e.target.value})} />
               <button onClick={addFixo} className="bg-green-600 text-white p-2 rounded hover:bg-green-700"><PlusCircle size={20}/></button>
             </div>
-
             <ul className="divide-y divide-gray-100">
               {fixos.map(f => (
                 <li key={f.id} className="py-3 flex justify-between items-center group">
                   <span className="text-sm text-gray-700">{f.nome}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-gray-800">R$ {Number(f.valor).toFixed(2)}</span>
-                    <Trash2 size={16} className="text-gray-300 hover:text-red-500 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setFixos(fixos.filter(fix => fix.id !== f.id))} />
-                  </div>
+                  <div className="flex items-center gap-4"><span className="font-bold text-gray-800">R$ {Number(f.valor).toFixed(2)}</span><Trash2 size={16} className="text-gray-300 hover:text-red-500 cursor-pointer md:opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setFixos(fixos.filter(fix => fix.id !== f.id))} /></div>
                 </li>
               ))}
-              <li className="py-3 mt-2 border-t font-bold flex justify-between text-blue-800 bg-blue-50 px-2 rounded">
-                <span>TOTAL MENSAL:</span>
-                <span>R$ {totalFixos.toFixed(2)}</span>
-              </li>
+              <li className="py-3 mt-2 border-t font-bold flex justify-between text-blue-800 bg-blue-50 px-2 rounded"><span>TOTAL:</span><span>R$ {totalFixos.toFixed(2)}</span></li>
             </ul>
           </div>
         </div>
@@ -523,49 +386,49 @@ const App = () => {
     );
   };
 
-  // --- RENDERIZAÇÃO PRINCIPAL ---
+  const NavButton = ({ tab, icon: Icon, label }) => (
+    <button onClick={() => { setActiveTab(tab); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded transition ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white text-slate-300'}`}>
+      <Icon size={20} /> {label}
+    </button>
+  );
+
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans text-gray-900">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* MOBILE OVERLAY */}
+      {isMobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
+      
       {/* SIDEBAR */}
-      <aside className="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col">
-        <div className="p-6 border-b border-slate-700">
-          <h1 className="text-2xl font-bold text-white">Gestão <span className="text-blue-500">Pro</span></h1>
-          <p className="text-xs text-slate-500 mt-1">v1.3 - Final</p>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 transform transition-transform duration-200 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:flex md:flex-col`}>
+        <div className="p-6 border-b border-slate-700 flex justify-between items-center">
+          <div><h1 className="text-2xl font-bold text-white">Gestão <span className="text-blue-500">Pro</span></h1><p className="text-xs text-slate-500 mt-1">v1.5 - Mobile Fix</p></div>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400"><X size={24} /></button>
         </div>
-        <nav className="p-4 space-y-2 flex-1">
-          <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 p-3 rounded transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white'}`}>
-            <LayoutDashboard size={20} /> Dashboard
-          </button>
-          <button onClick={() => setActiveTab('caixa')} className={`w-full flex items-center gap-3 p-3 rounded transition ${activeTab === 'caixa' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white'}`}>
-            <Wallet size={20} /> Fluxo de Caixa
-          </button>
-          <button onClick={() => setActiveTab('servicos')} className={`w-full flex items-center gap-3 p-3 rounded transition ${activeTab === 'servicos' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white'}`}>
-            <Wrench size={20} /> Serviços e Preços
-          </button>
-          <button onClick={() => setActiveTab('estoque')} className={`w-full flex items-center gap-3 p-3 rounded transition ${activeTab === 'estoque' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white'}`}>
-            <Package size={20} /> Estoque
-          </button>
-          <button onClick={() => setActiveTab('config')} className={`w-full flex items-center gap-3 p-3 rounded transition ${activeTab === 'config' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white'}`}>
-            <Settings size={20} /> Configurações
-          </button>
+        <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
+          <NavButton tab="dashboard" icon={LayoutDashboard} label="Dashboard" />
+          <NavButton tab="caixa" icon={Wallet} label="Fluxo de Caixa" />
+          <NavButton tab="servicos" icon={Wrench} label="Serviços" />
+          <NavButton tab="estoque" icon={Package} label="Estoque" />
+          <NavButton tab="config" icon={Settings} label="Configurações" />
         </nav>
-        <div className="p-4 border-t border-slate-800 text-xs text-center text-slate-600">
-           &copy; 2024 Small Business
-        </div>
+        <div className="p-4 border-t border-slate-800 text-xs text-center text-slate-600">&copy; 2024 Small Business</div>
       </aside>
 
-      {/* CONTEÚDO */}
-      <main className="flex-1 p-8 overflow-y-auto h-screen">
-        <header className="mb-8 flex justify-between items-center md:hidden">
-          <h1 className="text-2xl font-bold text-gray-800">Gestão Pro</h1>
+      {/* CONTENT AREA */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        <header className="md:hidden bg-white border-b h-16 flex items-center justify-between px-4 flex-none z-10 shadow-sm">
+          <button onClick={() => setIsMobileMenuOpen(true)} className="text-gray-700 p-2"><Menu size={24} /></button>
+          <span className="font-bold text-gray-800">Gestão Pro</span>
+          <div className="w-10"></div>
         </header>
 
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'caixa' && <FluxoCaixa />}
-        {activeTab === 'servicos' && <CalculadoraServicos />}
-        {activeTab === 'estoque' && <Estoque />}
-        {activeTab === 'config' && <Configuracoes />}
-      </main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 w-full">
+          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'caixa' && <FluxoCaixa />}
+          {activeTab === 'servicos' && <CalculadoraServicos />}
+          {activeTab === 'estoque' && <Estoque />}
+          {activeTab === 'config' && <Configuracoes />}
+        </main>
+      </div>
     </div>
   );
 }
