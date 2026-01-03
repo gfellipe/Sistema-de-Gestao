@@ -21,7 +21,9 @@ import {
   AlertTriangle,
   Printer,
   CheckCircle,
-  Menu // Novo ícone para mobile
+  Menu,
+  ArrowUpCircle,
+  ArrowDownCircle
 } from 'lucide-react';
 
 // --- DADOS INICIAIS ---
@@ -94,15 +96,19 @@ const INITIAL_DATA = {
     { id: 18, service: "Combo Standard - Couro", time: 5.5, materialCost: 18.00, price: 280.00, recipe: [] }
   ],
   cashFlow: [
-    { id: 1, date: "2025-11-01", service: "Lavagem Convencional", value: 60, splitCaixa: 24, splitReserva: 18, splitFixos: 12, splitProlabore: 6 },
-    { id: 2, date: "2025-11-15", service: "Lavagem Convencional", value: 60, splitCaixa: 24, splitReserva: 18, splitFixos: 12, splitProlabore: 6 },
-    { id: 3, date: "2025-12-05", service: "Lavagem Convencional", value: 75, splitCaixa: 30, splitReserva: 22.5, splitFixos: 15, splitProlabore: 7.5 },
-    { id: 4, date: "2025-12-18", service: "Lavagem Convencional", value: 110, splitCaixa: 44, splitReserva: 33, splitFixos: 22, splitProlabore: 11 },
-    { id: 5, date: "2025-12-19", service: "Lavagem Convencional", value: 70, splitCaixa: 28, splitReserva: 21, splitFixos: 14, splitProlabore: 7 },
-    { id: 6, date: "2025-12-24", service: "Lavagem Convencional", value: 80, splitCaixa: 32, splitReserva: 24, splitFixos: 16, splitProlabore: 8 },
-    { id: 7, date: "2025-12-24", service: "Lavagem Convencional", value: 110, splitCaixa: 44, splitReserva: 33, splitFixos: 22, splitProlabore: 11 },
-    { id: 8, date: "2025-12-24", service: "Lavagem Convencional", value: 120, splitCaixa: 48, splitReserva: 36, splitFixos: 24, splitProlabore: 12 },
-    { id: 9, date: "2025-12-27", service: "Lavagem Convencional", value: 100, splitCaixa: 40, splitReserva: 30, splitFixos: 20, splitProlabore: 10 }
+    // --- DADOS DA IMAGEM (ENTRADAS) ---
+    { id: 1, date: "2025-11-01", service: "Lavagem Convencional", value: 60, splitCaixa: 24, splitReserva: 18, splitFixos: 12, splitProlabore: 6, type: 'in' },
+    { id: 2, date: "2025-11-15", service: "Lavagem Convencional", value: 60, splitCaixa: 24, splitReserva: 18, splitFixos: 12, splitProlabore: 6, type: 'in' },
+    { id: 3, date: "2025-12-05", service: "Lavagem Convencional", value: 75, splitCaixa: 30, splitReserva: 22.5, splitFixos: 15, splitProlabore: 7.5, type: 'in' },
+    { id: 4, date: "2025-12-18", service: "Lavagem Convencional", value: 110, splitCaixa: 44, splitReserva: 33, splitFixos: 22, splitProlabore: 11, type: 'in' },
+    { id: 5, date: "2025-12-19", service: "Lavagem Convencional", value: 70, splitCaixa: 28, splitReserva: 21, splitFixos: 14, splitProlabore: 7, type: 'in' },
+    { id: 6, date: "2025-12-24", service: "Lavagem Convencional", value: 80, splitCaixa: 32, splitReserva: 24, splitFixos: 16, splitProlabore: 8, type: 'in' },
+    { id: 7, date: "2025-12-24", service: "Lavagem Convencional", value: 110, splitCaixa: 44, splitReserva: 33, splitFixos: 22, splitProlabore: 11, type: 'in' },
+    { id: 8, date: "2025-12-24", service: "Lavagem Convencional", value: 120, splitCaixa: 48, splitReserva: 36, splitFixos: 24, splitProlabore: 12, type: 'in' },
+    { id: 9, date: "2025-12-27", service: "Lavagem Convencional", value: 100, splitCaixa: 40, splitReserva: 30, splitFixos: 20, splitProlabore: 10, type: 'in' },
+    
+    // --- GASTO ADICIONAL (SAÍDA) ---
+    { id: 10, date: "2026-01-02", service: "Compra Tinta", value: 435, splitCaixa: 0, splitReserva: 0, splitFixos: 0, splitProlabore: 0, type: 'out' }
   ],
   clients: [],
   appointments: []
@@ -216,11 +222,12 @@ const InputGroup = ({ label, type = "text", value, onChange, readOnly = false, c
 // --- APP PRINCIPAL ---
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Estado para menu mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [data, setData] = useState(() => {
     try {
-      const saved = localStorage.getItem('gm_brothers_v3_final');
+      // Mudei a chave para v5 para forçar a atualização dos novos dados
+      const saved = localStorage.getItem('gm_brothers_v5_final');
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
@@ -240,7 +247,7 @@ const App = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem('gm_brothers_v3_final', JSON.stringify(data));
+    localStorage.setItem('gm_brothers_v5_final', JSON.stringify(data));
   }, [data]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -252,16 +259,31 @@ const App = () => {
     const safeFixedCosts = data.fixedCosts || [];
     const safeInventory = data.inventory || [];
 
-    const totalEntradas = safeCashFlow.reduce((acc, curr) => acc + Number(curr.value || 0), 0);
+    // Lógica para separar Entradas e Saídas
+    const totalEntradas = safeCashFlow
+      .filter(item => item.type !== 'out') // Se não tiver type ou for 'in'
+      .reduce((acc, curr) => acc + Number(curr.value || 0), 0);
+
+    const totalSaidas = safeCashFlow
+      .filter(item => item.type === 'out')
+      .reduce((acc, curr) => acc + Number(curr.value || 0), 0);
+
+    const saldoReal = totalEntradas - totalSaidas;
+
     const totalCustosFixos = safeFixedCosts.reduce((acc, curr) => acc + Number(curr.value || 0), 0);
     const totalInvestidoEstoque = safeInventory.reduce((acc, curr) => acc + (Number(curr.qty || 0) * Number(curr.unitCost || 0)), 0);
+    
+    // Divisões baseadas no que foi gerado de valor (entradas)
     const saldoCaixa = safeCashFlow.reduce((acc, curr) => acc + Number(curr.splitCaixa || 0), 0);
+    // Mas o caixa real disponível é o acumulado menos o que gastou
+    const caixaLiquido = saldoCaixa - totalSaidas; 
+
     const saldoProlabore = safeCashFlow.reduce((acc, curr) => acc + Number(curr.splitProlabore || 0), 0);
     const saldoFixos = safeCashFlow.reduce((acc, curr) => acc + Number(curr.splitFixos || 0), 0);
     
     const lowStockItems = safeInventory.filter(item => item.qty < 0.2 || (item.category === 'Químico' && item.qty < 0.1));
 
-    return { totalEntradas, saldoCaixa, saldoProlabore, totalCustosFixos, totalInvestidoEstoque, saldoFixos, lowStockItems };
+    return { totalEntradas, totalSaidas, saldoReal, caixaLiquido, saldoProlabore, totalCustosFixos, totalInvestidoEstoque, saldoFixos, lowStockItems };
   }, [data]);
 
   const handleInventoryDeduction = (serviceName) => {
@@ -288,6 +310,7 @@ const App = () => {
       value: newVal,
       clientId: appointment.clientId, 
       clientName: appointment.clientName,
+      type: 'in', // Automático da agenda é sempre entrada
       splitCaixa: newVal * 0.40,
       splitReserva: newVal * 0.30,
       splitFixos: newVal * 0.20,
@@ -312,7 +335,7 @@ const App = () => {
   const handleReset = () => {
     if (window.confirm("ATENÇÃO: Isso apagará tudo e restaurará os dados originais. Continuar?")) {
       setData(INITIAL_DATA);
-      localStorage.setItem('gm_brothers_v3_final', JSON.stringify(INITIAL_DATA));
+      localStorage.setItem('gm_brothers_v5_final', JSON.stringify(INITIAL_DATA));
       alert("Sistema restaurado.");
     }
   };
@@ -323,7 +346,11 @@ const App = () => {
       setFormData({ ...item });
     } else {
       const defaults = {};
-      if (activeTab === 'cashFlow') { defaults.date = getToday(); defaults.value = 0; }
+      if (activeTab === 'cashFlow') { 
+        defaults.date = getToday(); 
+        defaults.value = 0; 
+        defaults.type = 'in'; // Padrão Entrada
+      }
       if (activeTab === 'inventory') { defaults.qty = 1; defaults.unitCost = 0; }
       if (activeTab === 'clients') { defaults.name = ''; defaults.phone = ''; }
       if (activeTab === 'agenda') { defaults.date = getToday(); defaults.status = 'Agendado'; }
@@ -339,17 +366,29 @@ const App = () => {
 
     if (activeTab === 'cashFlow') {
       const val = Number(finalData.value);
-      finalData.splitCaixa = val * 0.40;
-      finalData.splitReserva = val * 0.30;
-      finalData.splitFixos = val * 0.20;
-      finalData.splitProlabore = val * 0.10;
       
-      if (finalData.clientId) {
-        const client = data.clients.find(c => c.id === Number(finalData.clientId));
-        if (client) finalData.clientName = client.name;
+      if (finalData.type === 'out') {
+        // Se for SAÍDA (Gasto)
+        finalData.splitCaixa = 0;
+        finalData.splitReserva = 0;
+        finalData.splitFixos = 0;
+        finalData.splitProlabore = 0;
+        // Não abate estoque em saídas de dinheiro genéricas
+      } else {
+        // Se for ENTRADA (Ganho)
+        finalData.type = 'in';
+        finalData.splitCaixa = val * 0.40;
+        finalData.splitReserva = val * 0.30;
+        finalData.splitFixos = val * 0.20;
+        finalData.splitProlabore = val * 0.10;
+        
+        if (finalData.clientId) {
+          const client = data.clients.find(c => c.id === Number(finalData.clientId));
+          if (client) finalData.clientName = client.name;
+        }
+        const newInventory = handleInventoryDeduction(finalData.service);
+        setData(prev => ({ ...prev, inventory: newInventory }));
       }
-      const newInventory = handleInventoryDeduction(finalData.service);
-      setData(prev => ({ ...prev, inventory: newInventory }));
     }
 
     if (activeTab === 'agenda') {
@@ -411,24 +450,32 @@ const App = () => {
 
   const renderReports = () => {
     const cashFlow = data.cashFlow || [];
-    const revenueByMonth = cashFlow.reduce((acc, curr) => {
-      const month = curr.date.substring(0, 7); 
-      acc[month] = (acc[month] || 0) + Number(curr.value);
-      return acc;
-    }, {});
+    // Filtra apenas entradas para gráfico de faturamento
+    const revenueByMonth = cashFlow
+      .filter(item => item.type !== 'out')
+      .reduce((acc, curr) => {
+        const month = curr.date.substring(0, 7); 
+        acc[month] = (acc[month] || 0) + Number(curr.value);
+        return acc;
+      }, {});
+    
     const servicesCount = cashFlow.reduce((acc, curr) => {
+      // Ignora se for saída na contagem de serviços
+      if (curr.type === 'out') return acc;
       acc[curr.service] = (acc[curr.service] || 0) + 1;
       return acc;
     }, {});
+    
     const sortedServices = Object.entries(servicesCount).sort((a,b) => b[1] - a[1]).slice(0, 5);
     const totalRevenue = Object.values(revenueByMonth).reduce((a,b) => a+b, 0);
-    const ticketAverage = cashFlow.length ? totalRevenue / cashFlow.length : 0;
+    const validEntries = cashFlow.filter(i => i.type !== 'out').length;
+    const ticketAverage = validEntries ? totalRevenue / validEntries : 0;
 
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><BarChart3 size={20}/> Faturamento Mensal</h3>
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><BarChart3 size={20}/> Faturamento Mensal (Entradas)</h3>
               <div className="space-y-3">
                  {Object.entries(revenueByMonth).map(([month, val]) => (
                    <div key={month}>
@@ -474,12 +521,13 @@ const App = () => {
         </div>
       )}
 
+      {/* CARDS ATUALIZADOS COM ENTRADA E SAÍDA */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Entradas Totais", value: stats.totalEntradas, color: "text-white", icon: <TrendingUp className="text-green-500" /> },
-          { label: "Caixa (40%)", value: stats.saldoCaixa, color: "text-blue-400", icon: <Wallet className="text-blue-500" /> },
-          { label: "Estoque Investido", value: stats.totalInvestidoEstoque, color: "text-slate-200", icon: <Package className="text-slate-500" /> },
-          { label: "Pró-Labore (10%)", value: stats.saldoProlabore, color: "text-red-500", icon: <DollarSign className="text-red-600" /> },
+          { label: "Total Entradas", value: stats.totalEntradas, color: "text-green-400", icon: <ArrowUpCircle className="text-green-500" /> },
+          { label: "Total Saídas", value: stats.totalSaidas, color: "text-red-400", icon: <ArrowDownCircle className="text-red-500" /> },
+          { label: "Saldo Real", value: stats.saldoReal, color: stats.saldoReal >= 0 ? "text-white" : "text-red-500", icon: <Wallet className="text-white" /> },
+          { label: "Caixa Líquido", value: stats.caixaLiquido, color: "text-blue-400", icon: <DollarSign className="text-blue-500" /> },
         ].map((stat, idx) => (
           <div key={idx} className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative group overflow-hidden">
             <div className="absolute -right-6 -top-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
@@ -592,7 +640,7 @@ const App = () => {
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
       `}</style>
 
       {/* MOBILE HEADER */}
@@ -617,7 +665,7 @@ const App = () => {
            <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-800 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-red-900/50">GM</div>
            <div>
              <span className="text-lg font-bold tracking-wider text-white font-montserrat block leading-none">BROTHERS</span>
-             <span className="text-[10px] text-slate-500 uppercase tracking-widest">Manager v3.0</span>
+             <span className="text-[10px] text-slate-500 uppercase tracking-widest">Manager v5.0</span>
            </div>
         </div>
         <div className="md:hidden p-4 text-center border-b border-slate-800 text-slate-500 text-xs uppercase tracking-widest">Menu Principal</div>
@@ -660,20 +708,33 @@ const App = () => {
         {activeTab === 'reports' && renderReports()}
 
         {activeTab === 'cashFlow' && renderTable(
-          ['Data', 'Cliente', 'Serviço', 'Entrada', 'Caixa (40%)', 'Reserva (30%)', 'Fixos (20%)', 'Pró-Labore (10%)'],
+          ['Data', 'Tipo', 'Descrição', 'Valor', 'Caixa (40%)', 'Reserva (30%)', 'Fixos (20%)', 'Pró-Labore (10%)'],
           [...(data.cashFlow || [])].sort((a,b) => new Date(b.date) - new Date(a.date)),
-          (row) => (
-            <>
-              <td className="px-6 py-4 font-mono text-slate-400 whitespace-nowrap">{formatDate(row.date)}</td>
-              <td className="px-6 py-4 font-medium text-slate-300 whitespace-nowrap">{row.clientName || '-'}</td>
-              <td className="px-6 py-4 font-medium text-white whitespace-nowrap">{row.service}</td>
-              <td className="px-6 py-4 text-green-400 font-bold bg-green-400/5 rounded-lg whitespace-nowrap">{formatCurrency(row.value)}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(row.splitCaixa)}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(row.splitReserva)}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(row.splitFixos)}</td>
-              <td className="px-6 py-4 text-red-300 whitespace-nowrap">{formatCurrency(row.splitProlabore)}</td>
-            </>
-          )
+          (row) => {
+            const isExit = row.type === 'out';
+            return (
+              <>
+                <td className="px-6 py-4 font-mono text-slate-400 whitespace-nowrap">{formatDate(row.date)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                   {isExit ? 
+                      <span className="flex items-center gap-1 text-red-500 bg-red-500/10 px-2 py-1 rounded text-xs font-bold w-fit"><ArrowDownCircle size={14}/> SAÍDA</span> : 
+                      <span className="flex items-center gap-1 text-green-500 bg-green-500/10 px-2 py-1 rounded text-xs font-bold w-fit"><ArrowUpCircle size={14}/> ENTRADA</span>
+                   }
+                </td>
+                <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
+                    {row.service}
+                    {row.clientName && <div className="text-xs text-slate-500">{row.clientName}</div>}
+                </td>
+                <td className={`px-6 py-4 font-bold whitespace-nowrap ${isExit ? 'text-red-400' : 'text-green-400'}`}>
+                    {isExit ? '-' : '+'} {formatCurrency(row.value)}
+                </td>
+                <td className="px-6 py-4 text-slate-500 whitespace-nowrap">{isExit ? '-' : formatCurrency(row.splitCaixa)}</td>
+                <td className="px-6 py-4 text-slate-500 whitespace-nowrap">{isExit ? '-' : formatCurrency(row.splitReserva)}</td>
+                <td className="px-6 py-4 text-slate-500 whitespace-nowrap">{isExit ? '-' : formatCurrency(row.splitFixos)}</td>
+                <td className="px-6 py-4 text-slate-500 whitespace-nowrap">{isExit ? '-' : formatCurrency(row.splitProlabore)}</td>
+              </>
+            );
+          }
         )}
 
         {activeTab === 'services' && renderTable(
@@ -775,10 +836,38 @@ const App = () => {
 
           {activeTab === 'cashFlow' && (
             <div className="grid gap-4">
+               {/* SELETOR DE ENTRADA OU SAÍDA */}
+              <div className="flex gap-4 p-4 bg-slate-800 rounded-lg border border-slate-700">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="flowType" 
+                    checked={formData.type !== 'out'} 
+                    onChange={() => setFormData({...formData, type: 'in'})}
+                    className="accent-green-500 w-5 h-5"
+                  />
+                  <span className="text-white font-bold flex items-center gap-1"><ArrowUpCircle size={16} className="text-green-500"/> Entrada (Ganho)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="flowType" 
+                    checked={formData.type === 'out'} 
+                    onChange={() => setFormData({...formData, type: 'out'})}
+                    className="accent-red-500 w-5 h-5"
+                  />
+                  <span className="text-white font-bold flex items-center gap-1"><ArrowDownCircle size={16} className="text-red-500"/> Saída (Gasto)</span>
+                </label>
+              </div>
+
               <InputGroup label="Data" type="date" value={formData.date || getToday()} onChange={(e) => setFormData({...formData, date: e.target.value})} />
-              <InputGroup label="Cliente (Opcional)" options={data.clients.map(c => ({ value: c.id, label: c.name }))} value={formData.clientId || ''} onChange={(e) => setFormData({...formData, clientId: e.target.value})} />
+              
+              {formData.type !== 'out' && (
+                <InputGroup label="Cliente (Opcional)" options={data.clients.map(c => ({ value: c.id, label: c.name }))} value={formData.clientId || ''} onChange={(e) => setFormData({...formData, clientId: e.target.value})} />
+              )}
+              
               <InputGroup label="Serviço / Descrição" value={formData.service || ''} onChange={(e) => setFormData({...formData, service: e.target.value})} />
-              <InputGroup label="Valor Entrada (R$)" type="number" step="0.01" value={formData.value || ''} onChange={(e) => setFormData({...formData, value: e.target.value})} />
+              <InputGroup label="Valor (R$)" type="number" step="0.01" value={formData.value || ''} onChange={(e) => setFormData({...formData, value: e.target.value})} />
             </div>
           )}
 
@@ -814,8 +903,8 @@ const App = () => {
                 </div>
                 <ul className="text-xs text-slate-400 space-y-1">
                   {(formData.recipe || []).map((r, i) => {
-                     const item = data.inventory.find(inv => inv.id === r.inventoryId);
-                     return <li key={i} className="flex justify-between border-b border-slate-700 pb-1"><span>{item?.product}</span> <span>{r.qty} un</span></li>
+                      const item = data.inventory.find(inv => inv.id === r.inventoryId);
+                      return <li key={i} className="flex justify-between border-b border-slate-700 pb-1"><span>{item?.product}</span> <span>{r.qty} un</span></li>
                   })}
                 </ul>
               </div>
